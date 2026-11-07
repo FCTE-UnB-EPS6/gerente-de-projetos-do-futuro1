@@ -1,0 +1,30 @@
+name: Funcionalidade
+description: Proponha uma nova funcionalidade ou agente
+labels: ["funcionalidade"]
+body:
+  - type: textarea
+    id: historia
+    attributes:
+      label: História de usuário
+      placeholder: Como <papel>, quero <ação> para <benefício>.
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceitação
+      placeholder: |
+        - Dado ... quando ... então ...
+    validations:
+      required: true
+  - type: dropdown
+    id: referencial
+    attributes:
+      label: Referencial de GP relacionado
+      multiple: true
+      options: [PMBOK 8, PRINCE2 7, PM4R, Nenhum]
+  - type: dropdown
+    id: tribo
+    attributes:
+      label: Tribo responsável
+      options: [Tribo 1, Tribo 2, Tribo 3, Tribo 4, Tribo 5, Tribo 6, A definir]
