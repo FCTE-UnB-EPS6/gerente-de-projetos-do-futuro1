@@ -7,7 +7,11 @@ RUN pip install --no-cache-dir --prefix=/install .
 
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-RUN useradd --create-home --uid 10001 gpf
+# Aplica as correções de segurança do Debian publicadas depois da imagem base.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 10001 gpf
 COPY --from=build /install /usr/local
 USER gpf
 EXPOSE 8000

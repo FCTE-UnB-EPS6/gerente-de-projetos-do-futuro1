@@ -1,0 +1,48 @@
+{
+  "name": "protecao-main",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [
+    {
+      "actor_id": 1,
+      "actor_type": "OrganizationAdmin",
+      "bypass_mode": "pull_request"
+    }
+  ],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    { "type": "required_linear_history" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": true,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": true,
+        "allowed_merge_methods": ["squash"]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "Lint, tipos e testes", "integration_id": 15368 },
+          { "context": "Build e scan da imagem", "integration_id": 15368 },
+          { "context": "Gitleaks (segredos)", "integration_id": 15368 },
+          { "context": "pip-audit (dependências)", "integration_id": 15368 },
+          { "context": "CodeQL (SAST)", "integration_id": 15368 }
+        ]
+      }
+    }
+  ]
+}

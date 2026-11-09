@@ -1,0 +1,38 @@
+name: Entrega (CD)
+
+# Publica a imagem no GitHub Container Registry depois que a CI passa na main.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  publicar-imagem:
+    name: Publicar imagem no GHCR
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Login no GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build e push (tags sha e latest)
+        run: |
+          IMAGE_LC="${IMAGE,,}"
+          docker build -t "$IMAGE_LC:$SHA" -t "$IMAGE_LC:latest" \
+            --label org.opencontainers.image.source="https://github.com/${{ github.repository }}" \
+            --label org.opencontainers.image.revision="$SHA" .
+          docker push "$IMAGE_LC:$SHA"
+          docker push "$IMAGE_LC:latest"

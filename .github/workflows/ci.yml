@@ -16,12 +16,14 @@ jobs:
   qualidade:
     name: Lint, tipos e testes
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: pyproject.toml
       - run: pip install -e ".[dev]"
       - name: Lint (ruff)
         run: make lint
@@ -29,7 +31,7 @@ jobs:
         run: make typecheck
       - name: Testes (pytest + cobertura ≥ 80%)
         run: pytest --cov-report=xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage
@@ -38,14 +40,20 @@ jobs:
   docker:
     name: Build e scan da imagem
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: qualidade
     steps:
-      - uses: actions/checkout@v4
-      - run: docker build -t gpf:${{ github.sha }} .
-      - name: Trivy (vulnerabilidades da imagem)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: gpf:${{ github.sha }}
-          severity: CRITICAL,HIGH
-          exit-code: "1"
-          ignore-unfixed: true
+      - uses: actions/checkout@v7
+      - name: Build da imagem
+        run: docker build -t gpf:${{ github.sha }} .
+      - name: Smoke test (/health)
+        run: |
+          docker run -d --name gpf -p 8000:8000 gpf:${{ github.sha }}
+          for i in $(seq 1 20); do curl -fsS http://localhost:8000/health && exit 0; sleep 1; done
+          docker logs gpf; exit 1
+      - name: Trivy (vulnerabilidades HIGH/CRITICAL corrigíveis)
+        # Imagem com versão fixa, em vez da action, para reduzir o risco de cadeia de suprimentos.
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.58.1 image --severity CRITICAL,HIGH --ignore-unfixed \
+            --exit-code 1 --no-progress gpf:${{ github.sha }}
