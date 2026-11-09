@@ -58,6 +58,7 @@ src/gpf/
   agents/       # agentes de IA (contratos e implementações)
 tests/          # testes automatizados
 docs/           # arquitetura, ADRs e mapeamento PMBOK/PRINCE2/PM4R
+deploy/         # implantação no servidor da universidade (homologação e produção)
 .github/        # CI/CD, segurança, templates e CODEOWNERS
 .devcontainer/  # ambiente reprodutível (Codespaces)
 ```
@@ -71,6 +72,15 @@ docs/           # arquitetura, ADRs e mapeamento PMBOK/PRINCE2/PM4R
 5. *Squash merge* na `main`.
 
 Mais detalhes em [CONTRIBUTING.md](CONTRIBUTING.md). Para vulnerabilidades, veja [SECURITY.md](SECURITY.md).
+
+## Ambientes
+
+| Ambiente | Quando recebe uma versão | Onde |
+|---|---|---|
+| Homologação | Automaticamente, a cada merge na `main` com CI verde | Servidor da universidade, tag `:homologacao` |
+| Produção | Depois da aprovação no ambiente `producao` do GitHub | Servidor da universidade, tag `:producao` |
+
+Instalação e operação do servidor: [deploy/README.md](deploy/README.md). Para voltar a uma versão anterior, use o workflow **Promover versão (rollback)**.
 
 ## Documentação
 

@@ -1,0 +1,50 @@
+name: Promover versão (rollback)
+
+# Uso manual: Actions → "Promover versão (rollback)" → Run workflow.
+# Coloca qualquer versão já publicada (SHA do commit) em homologação ou em produção.
+# Serve para voltar à versão anterior quando algo dá errado.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "SHA completo do commit da versão (veja em Packages ou no histórico da main)"
+        required: true
+        type: string
+      ambiente:
+        description: "Ambiente de destino"
+        required: true
+        type: choice
+        options: [homologacao, producao]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: entrega
+  cancel-in-progress: false
+
+jobs:
+  promover:
+    name: Promover ${{ inputs.sha }} para ${{ inputs.ambiente }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: ${{ inputs.ambiente }}
+    permissions:
+      packages: write
+    steps:
+      - name: Validar o SHA
+        env:
+          SHA: ${{ inputs.sha }}
+        run: |
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Informe o SHA completo, com 40 caracteres hexadecimais."; exit 1; }
+      - name: Login no GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Remarcar a imagem
+        env:
+          SHA: ${{ inputs.sha }}
+          AMBIENTE: ${{ inputs.ambiente }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker buildx imagetools inspect "$IMAGE:$SHA" > /dev/null || { echo "::error::A imagem $SHA não existe no GHCR."; exit 1; }
+          docker buildx imagetools create -t "$IMAGE:$AMBIENTE" "$IMAGE:$SHA"
+          echo "### $AMBIENTE agora roda \`${SHA:0:7}\`" >> "$GITHUB_STEP_SUMMARY"
