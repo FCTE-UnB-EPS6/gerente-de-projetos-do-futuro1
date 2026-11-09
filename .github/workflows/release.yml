@@ -1,6 +1,10 @@
 name: Entrega (CD)
 
-# Publica a imagem no GitHub Container Registry depois que a CI passa na main.
+# Depois da CI verde na main:
+#   1. publica a imagem no GHCR com a tag do commit (sha);
+#   2. promove essa imagem para homologação (tag "homologacao");
+#   3. espera a aprovação do ambiente "producao" e promove para produção (tag "producao").
+# O servidor da universidade busca as tags sozinho (deploy/atualizar.sh). O GitHub nunca acessa o servidor.
 on:
   workflow_run:
     workflows: [CI]
@@ -9,6 +13,13 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: entrega
+  cancel-in-progress: false
+
+env:
+  SHA: ${{ github.event.workflow_run.head_sha }}
 
 jobs:
   publicar-imagem:
@@ -19,20 +30,59 @@ jobs:
     permissions:
       contents: read
       packages: write
-    env:
-      IMAGE: ghcr.io/${{ github.repository }}
-      SHA: ${{ github.event.workflow_run.head_sha }}
+    outputs:
+      image: ${{ steps.nome.outputs.image }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ env.SHA }}
+      - id: nome
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
       - name: Login no GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Build e push (tags sha e latest)
+        env:
+          IMAGE: ${{ steps.nome.outputs.image }}
         run: |
-          IMAGE_LC="${IMAGE,,}"
-          docker build -t "$IMAGE_LC:$SHA" -t "$IMAGE_LC:latest" \
+          docker build -t "$IMAGE:$SHA" -t "$IMAGE:latest" \
             --label org.opencontainers.image.source="https://github.com/${{ github.repository }}" \
             --label org.opencontainers.image.revision="$SHA" .
-          docker push "$IMAGE_LC:$SHA"
-          docker push "$IMAGE_LC:latest"
+          docker push "$IMAGE:$SHA"
+          docker push "$IMAGE:latest"
+
+  homologacao:
+    name: Promover para homologação
+    needs: publicar-imagem
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: homologacao
+    permissions:
+      packages: write
+    steps:
+      - name: Login no GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Marcar a imagem como homologação
+        env:
+          IMAGE: ${{ needs.publicar-imagem.outputs.image }}
+        run: |
+          docker buildx imagetools create -t "$IMAGE:homologacao" "$IMAGE:$SHA"
+          echo "### Homologação recebe \`${SHA:0:7}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "O servidor aplica a nova versão em até 2 minutos. Teste e depois aprove a produção." >> "$GITHUB_STEP_SUMMARY"
+
+  producao:
+    name: Promover para produção
+    needs: [publicar-imagem, homologacao]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: producao # exige aprovação manual (Settings → Environments → producao)
+    permissions:
+      packages: write
+    steps:
+      - name: Login no GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Marcar a imagem como produção
+        env:
+          IMAGE: ${{ needs.publicar-imagem.outputs.image }}
+        run: |
+          docker buildx imagetools create -t "$IMAGE:producao" "$IMAGE:$SHA"
+          echo "### Produção recebe \`${SHA:0:7}\`" >> "$GITHUB_STEP_SUMMARY"

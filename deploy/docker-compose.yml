@@ -1,0 +1,48 @@
+# Ambientes do GPF no servidor da universidade.
+# Cada serviço acompanha uma tag da imagem no GHCR; o GitHub decide qual versão recebe cada tag.
+# As portas ficam presas ao localhost: o acesso externo passa pelo proxy reverso (HTTPS) da TI.
+name: gpf
+
+x-endurecimento: &endurecimento
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  mem_limit: 512m
+  cpus: 1.0
+  pids_limit: 200
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 10s
+
+services:
+  homologacao:
+    <<: *endurecimento
+    image: ghcr.io/fcte-unb-eps6/gerente-de-projetos-do-futuro1:homologacao
+    container_name: gpf-homologacao
+    environment:
+      GPF_ENV: homologacao
+      GPF_LOG_LEVEL: DEBUG
+    ports:
+      - "127.0.0.1:8001:8000"
+
+  producao:
+    <<: *endurecimento
+    image: ghcr.io/fcte-unb-eps6/gerente-de-projetos-do-futuro1:producao
+    container_name: gpf-producao
+    environment:
+      GPF_ENV: producao
+      GPF_LOG_LEVEL: INFO
+    ports:
+      - "127.0.0.1:8000:8000"
