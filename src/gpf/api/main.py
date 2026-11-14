@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from gpf import __version__
+from gpf.api.ml_routes import router as ml_router
 from gpf.domain.risk import Risk
 
 app = FastAPI(
@@ -13,6 +14,7 @@ app = FastAPI(
     version=__version__,
     description="Gerência de projetos AI-First — PMBOK 8, PRINCE2 7 e PM4R.",
 )
+app.include_router(ml_router)
 
 
 class RiskIn(BaseModel):
