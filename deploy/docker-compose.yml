@@ -1,0 +1,43 @@
+# Produção do GPF na rede privada doméstica (servidor DATEN).
+# Guia completo: docs/implantacao-rede-domestica.md
+#
+#   cd /srv/gpf && docker compose --env-file .env up -d
+#
+# A API escuta só em 127.0.0.1. O acesso pela rede privada é feito pelo `tailscale serve`,
+# que publica HTTPS com certificado válido apenas para os seus dispositivos da tailnet.
+name: gpf
+
+services:
+  api:
+    image: ghcr.io/fcte-unb-eps6/gerente-de-projetos-do-futuro1:${GPF_IMAGE_TAG:-latest}
+    # Alternativa sem registro: descomente para construir a partir do clone local.
+    # build: { context: .., args: { EXTRAS: ml } }
+    restart: unless-stopped
+    # UID/GID fixos: no host, /srv/gpf/models pertence ao grupo 10001 (veja o guia).
+    user: "10001:10001"
+    env_file: .env
+    environment:
+      GPF_ENV: production
+      GPF_MODEL_PATH: /models/gpf-risk.joblib
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./models:/models:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }

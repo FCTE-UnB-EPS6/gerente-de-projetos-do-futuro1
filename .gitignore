@@ -32,3 +32,9 @@ Thumbs.db
 
 # Node (futuro front-end)
 node_modules/
+
+# Modelos treinados e dados (podem conter informação sensível de projetos)
+models/
+*.joblib
+*.joblib.sha256
+dados/

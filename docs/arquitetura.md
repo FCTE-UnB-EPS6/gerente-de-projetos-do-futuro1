@@ -9,6 +9,9 @@
 │ agents/    Agentes de IA — analisam e    │
 │            PROPÕEM (human-in-the-loop)   │
 ├──────────────────────────────────────────┤
+│ ml/        Modelos preditivos (sklearn): │
+│            implementam agents.RiskModel  │
+├──────────────────────────────────────────┤
 │ domain/    Regras de GP puras: projeto,  │
 │            fases, estágios, riscos       │
 └──────────────────────────────────────────┘
@@ -26,6 +29,7 @@ As dependências apontam sempre para baixo. O domínio não conhece nem a API ne
 ## Próximos passos sugeridos
 
 - Persistência (PostgreSQL + SQLAlchemy) em `infra/`, atrás de repositórios definidos no domínio
+- ~~Machine learning para riscos~~ — feito em `gpf.ml` ([ADR 0002](adr/0002-ml-riscos-preditivos.md))
 - Agente de relatório de progresso com LLM (Claude), com avaliação automática (*evals*) na CI
 - Front-end (painel do projeto)
 - Observabilidade: logs estruturados e trilha de auditoria das decisões humanas

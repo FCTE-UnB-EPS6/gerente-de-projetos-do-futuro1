@@ -21,6 +21,7 @@ O humano decide; os agentes preparam, verificam e alertam.
 |---|---|
 | API | Python 3.12 + FastAPI |
 | Domínio | Modelos puros em Python (sem dependência de framework) |
+| ML de riscos | scikit-learn (gradient boosting, Random Forest, DBSCAN, TF-IDF); XGBoost e Transformers opcionais |
 | Qualidade | Ruff (lint + format), Mypy, Pytest + cobertura |
 | Segurança | CodeQL, Gitleaks, pip-audit, Dependabot, Trivy (imagem) |
 | Entrega | Docker + GitHub Actions |
@@ -42,6 +43,14 @@ make test        # testes
 make run         # API em http://localhost:8000 (docs em /docs)
 ```
 
+### Risco preditivo (ML)
+
+```bash
+gpf-train --synthetic 400 --out models/gpf-risk.joblib   # ou --csv dados/historico.csv
+export GPF_MODEL_PATH=models/gpf-risk.joblib GPF_MODEL_SHA256=<hash impresso pelo gpf-train>
+make run   # POST /ml/predict devolve probabilidade de estouro, contingência, anomalia e propostas
+```
+
 ### Opção 3 — Docker
 
 ```bash
@@ -56,6 +65,8 @@ src/gpf/
   api/          # camada HTTP (FastAPI)
   domain/       # entidades e regras de GP (projeto, riscos, estágios)
   agents/       # agentes de IA (contratos e implementações)
+  ml/           # modelos preditivos de risco e CLI gpf-train
+deploy/         # produção na rede privada doméstica (docker compose, scripts)
 tests/          # testes automatizados
 docs/           # arquitetura, ADRs e mapeamento PMBOK/PRINCE2/PM4R
 .github/        # CI/CD, segurança, templates e CODEOWNERS
@@ -77,6 +88,7 @@ Mais detalhes em [CONTRIBUTING.md](CONTRIBUTING.md). Para vulnerabilidades, veja
 - [Arquitetura](docs/arquitetura.md)
 - [Mapeamento PMBOK 8 · PRINCE2 7 · PM4R](docs/referenciais.md)
 - [Decisões de arquitetura (ADRs)](docs/adr/)
+- [Implantação em rede privada doméstica (DATEN + Mac Mini)](docs/implantacao-rede-domestica.md)
 
 ## Licença
 

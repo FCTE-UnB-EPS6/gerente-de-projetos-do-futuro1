@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
 
+from gpf.domain.metrics import ProjectMetrics
 from gpf.domain.risk import RiskRegister
 
 
@@ -60,6 +61,7 @@ class Project:
     phase: ProjectPhase = ProjectPhase.INITIATING
     stages: list[Stage] = field(default_factory=list)
     risks: RiskRegister = field(default_factory=RiskRegister)
+    metrics: ProjectMetrics | None = None
 
     def advance_to(self, target: ProjectPhase) -> None:
         if target not in _TRANSITIONS[self.phase]:
