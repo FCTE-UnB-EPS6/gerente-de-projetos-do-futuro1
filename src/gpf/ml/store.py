@@ -36,7 +36,7 @@ def save_model(predictor: RiskPredictor, path: Path) -> str:
     tmp = Path(tmp_name)
     try:
         joblib.dump(predictor, tmp, compress=3)
-        os.chmod(tmp, 0o640)
+        os.chmod(tmp, 0o600)  # só o dono; o DATEN libera ao grupo gpf (publicar-modelo.sh)
         tmp.replace(path)
     finally:
         tmp.unlink(missing_ok=True)
